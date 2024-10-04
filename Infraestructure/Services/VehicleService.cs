@@ -1,7 +1,9 @@
-﻿using MinimalApi.Domain.DTOs;
+﻿using Microsoft.EntityFrameworkCore;
+using MinimalApi.Domain.DTOs;
 using MinimalApi.Domain.Entities;
 using MinimalApi.Domain.Interfaces;
 using MinimalApi.Infraestructure.Db;
+using System.Runtime.Versioning;
 
 namespace MinimalApi.Infraestructure.Services
 {
@@ -14,29 +16,42 @@ namespace MinimalApi.Infraestructure.Services
             _context = context;
         }
 
-        public Vehicle Create(Vehicle vehicle)
+        public void Create(Vehicle vehicle)
         {
-            throw new NotImplementedException();
+            _context.Vehicles.Add(vehicle);
+            _context.SaveChanges();
         }
 
         public List<Vehicle> GetAll(int page = 1, string? name = null, string? brand = null)
         {
-            throw new NotImplementedException();
+            var query = _context.Vehicles.AsQueryable();
+            if(!string.IsNullOrEmpty(name))
+            {
+                query = query.Where(v => EF.Functions.Like(v.Name.ToLower(), $"%{name}%"));
+            }
+
+            int pageSize = 10;
+
+            query = query.Skip((page - 1) * pageSize).Take(pageSize);
+
+            return query.ToList();
         }
 
-        public Vehicle GetById(int id)
+        public Vehicle? GetById(int id)
         {
-            throw new NotImplementedException();
+            return _context.Vehicles.Where(v => v.Id == id).FirstOrDefault();
         }
 
-        public Vehicle Update(Vehicle vehicle)
+        public void Update(Vehicle vehicle)
         {
-            throw new NotImplementedException();
+            _context.Vehicles.Update(vehicle);
+            _context.SaveChanges();
         }
 
         public void Delete(int id)
         {
-            throw new NotImplementedException();
+            _context.Vehicles.Remove(_context.Vehicles.Find(id));
+            _context.SaveChanges();
         }
     }
 }
