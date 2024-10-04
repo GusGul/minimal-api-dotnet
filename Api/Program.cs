@@ -21,7 +21,7 @@ builder.Services.AddDbContext<Context>(options =>
     );
 });
 
-builder.Services.AddScoped<IAdministratorService, AdministratorService>();
+builder.Services.AddScoped<IAdministratorService, IAdministratorService>();
 
 var app = builder.Build();
 
