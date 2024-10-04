@@ -6,6 +6,7 @@ using MinimalApi.Domain.Entities;
 using MinimalApi.Domain.Interfaces;
 using MinimalApi.Infraestructure.Db;
 using MinimalApi.Infraestructure.Services;
+using static Microsoft.EntityFrameworkCore.DbLoggerCategory.Model;
 
 #region Builder
 var builder = WebApplication.CreateBuilder(args);
@@ -69,8 +70,28 @@ app.MapPost("/administrators/login", ([FromBody] LoginDTO loginDTO, IAdministrat
 #endregion
 
 #region Vehicles
+ValidationErrors validateDTO(VehicleDTO vehicleDTO)
+{
+    var validation = new ValidationErrors();
+
+    if (string.IsNullOrEmpty(vehicleDTO.Name))
+        validation.Messages.Add("The name cannot be empty");
+
+    if (string.IsNullOrEmpty(vehicleDTO.Brand))
+        validation.Messages.Add("The brand cannot be empty");
+
+    if (vehicleDTO.Year < 1950)
+        validation.Messages.Add("Vehicle is too old, only years above 1950 are accepted");
+
+    return validation;
+}
+
 app.MapPost("/vehicles", ([FromBody] VehicleDTO vehicleDTO, IVehicleService vehicleService) =>
 {
+    var validation = validateDTO(vehicleDTO);
+    if(validation.Messages.Count > 0)
+        return Results.BadRequest(validation);
+
     var vehicle = new Vehicle
     {
         Name = vehicleDTO.Name,
@@ -101,6 +122,10 @@ app.MapPut("/vehicles/{id}", ([FromRoute] int id, [FromBody] VehicleDTO vehicleD
     var vehicle = vehicleService.GetById(id);
     if (vehicle == null)
         return Results.NotFound();
+
+    var validation = validateDTO(vehicleDTO);
+    if (validation.Messages.Count > 0)
+        return Results.BadRequest(validation);
 
     vehicle.Name = vehicleDTO.Name;
     vehicle.Brand = vehicleDTO.Brand;
