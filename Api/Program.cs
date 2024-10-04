@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using MinimalApi.Domain.DTOs;
 using MinimalApi.Domain.Interfaces;
@@ -6,7 +7,10 @@ using MinimalApi.Infraestructure.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Configuration.AddUserSecrets<Program>();
+builder.Configuration
+    .AddJsonFile("appsettings.Development.json", optional: true)
+    .AddUserSecrets<Program>()
+    .AddEnvironmentVariables();
 
 builder.Logging.AddConsole();
 
@@ -21,7 +25,7 @@ builder.Services.AddDbContext<Context>(options =>
     );
 });
 
-builder.Services.AddScoped<IAdministratorService, IAdministratorService>();
+builder.Services.AddScoped<IAdministratorService, AdministratorService>();
 
 var app = builder.Build();
 
@@ -42,9 +46,9 @@ using (var scope = app.Services.CreateScope())
 
 app.MapGet("/", () => "Hello World!");
 
-app.MapPost("/login", (LoginDTO loginDTO) =>
+app.MapPost("/login", ([FromBody] LoginDTO loginDTO, IAdministratorService administratorService) =>
 {
-    if (loginDTO.Email == "admin" && loginDTO.Password == "admin")
+    if (administratorService.Login(loginDTO) != null)
         return Results.Ok("Login Success");
     else
         return Results.Unauthorized();

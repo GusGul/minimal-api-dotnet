@@ -1,7 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
 using Microsoft.Extensions.Configuration;
-using System.IO;
+using Microsoft.Extensions.Logging;
 
 namespace MinimalApi.Infraestructure.Db
 {
@@ -11,12 +11,14 @@ namespace MinimalApi.Infraestructure.Db
         {
             var configuration = new ConfigurationBuilder()
                 .SetBasePath(Directory.GetCurrentDirectory())
-                .AddJsonFile("appsettings.json")
+                .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
                 .Build();
 
             var builder = new DbContextOptionsBuilder<Context>();
             var connectionString = configuration.GetConnectionString("mysql");
-            builder.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString));
+            builder.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString))
+                .EnableSensitiveDataLogging()
+                .LogTo(Console.WriteLine, LogLevel.Information);
 
             return new Context(builder.Options);
         }

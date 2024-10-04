@@ -8,6 +8,7 @@ namespace MinimalApi.Infraestructure.Db
         public Context(DbContextOptions<Context> options) : base(options) { }
 
         public DbSet<Administrator> Administrators { get; set; }
+        public DbSet<Vehicle> Vehicles { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
