@@ -3,10 +3,11 @@ using Microsoft.EntityFrameworkCore;
 using minimal_api.ModelViews;
 using MinimalApi.Domain.DTOs;
 using MinimalApi.Domain.Entities;
+using MinimalApi.Domain.Enumerables;
 using MinimalApi.Domain.Interfaces;
 using MinimalApi.Infraestructure.Db;
 using MinimalApi.Infraestructure.Services;
-using static Microsoft.EntityFrameworkCore.DbLoggerCategory.Model;
+using System.Xml.Linq;
 
 #region Builder
 var builder = WebApplication.CreateBuilder(args);
@@ -60,6 +61,22 @@ app.MapGet("/", () => Results.Json(new Home())).WithTags("Home");
 #endregion
 
 #region Administrators
+ValidationErrors validateAdmDTO(AdministratorDTO administratorDTO)
+{
+    var validation = new ValidationErrors();
+
+    if (string.IsNullOrEmpty(administratorDTO.Email))
+        validation.Messages.Add("The e-mail cannot be empty");
+
+    if (string.IsNullOrEmpty(administratorDTO.Password))
+        validation.Messages.Add("The password cannot be empty");
+
+    if (administratorDTO.Role == null)
+        validation.Messages.Add("The role cannot be empty");
+
+    return validation;
+}
+
 app.MapPost("/administrators/login", ([FromBody] LoginDTO loginDTO, IAdministratorService administratorService) =>
 {
     if (administratorService.Login(loginDTO) != null)
@@ -67,10 +84,41 @@ app.MapPost("/administrators/login", ([FromBody] LoginDTO loginDTO, IAdministrat
     else
         return Results.Unauthorized();
 }).WithTags("Administradores");
+
+app.MapPost("/administrators", ([FromBody] AdministratorDTO administratorDTO, IAdministratorService administratorService) =>
+{
+    var validation = validateAdmDTO(administratorDTO);
+    if (validation.Messages.Count > 0)
+        return Results.BadRequest(validation);
+
+    var adm = new Administrator
+    {
+        Email = administratorDTO.Email,
+        Password = administratorDTO.Password,
+        Role = administratorDTO.Role.ToString() ?? Role.editor.ToString(),
+    };
+    administratorService.Create(adm);
+
+    return Results.Created($"/administrator/{adm.Id}", adm);
+}).WithTags("Administradores");
+
+app.MapGet("/administrators", ([FromQuery] int? page, IAdministratorService administratorService) =>
+{
+    var administrators = administratorService.GetAll(page ?? 1);
+    return Results.Ok(administrators);
+}).WithTags("Administrators");
+
+app.MapGet("/administrators/{id}", ([FromRoute] int id, IAdministratorService administratorService) =>
+{
+    var administrator = administratorService.GetById(id);
+    if (administrator == null)
+        return Results.NotFound();
+    return Results.Ok(administrator);
+}).WithTags("Veículos");
 #endregion
 
 #region Vehicles
-ValidationErrors validateDTO(VehicleDTO vehicleDTO)
+ValidationErrors validateVehicleDTO(VehicleDTO vehicleDTO)
 {
     var validation = new ValidationErrors();
 
@@ -88,7 +136,7 @@ ValidationErrors validateDTO(VehicleDTO vehicleDTO)
 
 app.MapPost("/vehicles", ([FromBody] VehicleDTO vehicleDTO, IVehicleService vehicleService) =>
 {
-    var validation = validateDTO(vehicleDTO);
+    var validation = validateVehicleDTO(vehicleDTO);
     if(validation.Messages.Count > 0)
         return Results.BadRequest(validation);
 
@@ -123,7 +171,7 @@ app.MapPut("/vehicles/{id}", ([FromRoute] int id, [FromBody] VehicleDTO vehicleD
     if (vehicle == null)
         return Results.NotFound();
 
-    var validation = validateDTO(vehicleDTO);
+    var validation = validateVehicleDTO(vehicleDTO);
     if (validation.Messages.Count > 0)
         return Results.BadRequest(validation);
 

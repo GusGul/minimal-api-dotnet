@@ -16,9 +16,11 @@ namespace MinimalApi.Infraestructure.Db
 
             var builder = new DbContextOptionsBuilder<Context>();
             var connectionString = configuration.GetConnectionString("mysql");
+
             builder.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString))
                 .EnableSensitiveDataLogging()
-                .LogTo(Console.WriteLine, LogLevel.Information);
+                .LogTo(Console.WriteLine, new[] { DbLoggerCategory.Database.Command.Name }, LogLevel.Information)
+                .EnableDetailedErrors();
 
             return new Context(builder.Options);
         }
