@@ -2,7 +2,7 @@
 {
     public enum Role
     {
-        adm,
-        editor,
+        Admin,
+        Editor,
     }
 }

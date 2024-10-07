@@ -7,6 +7,7 @@ using MinimalApi.Domain.Enumerables;
 using MinimalApi.Domain.Interfaces;
 using MinimalApi.Infraestructure.Db;
 using MinimalApi.Infraestructure.Services;
+using System.Runtime.Intrinsics.Arm;
 using System.Xml.Linq;
 
 #region Builder
@@ -95,25 +96,47 @@ app.MapPost("/administrators", ([FromBody] AdministratorDTO administratorDTO, IA
     {
         Email = administratorDTO.Email,
         Password = administratorDTO.Password,
-        Role = administratorDTO.Role.ToString() ?? Role.editor.ToString(),
+        Role = administratorDTO.Role.ToString() ?? Role.Editor.ToString(),
     };
     administratorService.Create(adm);
 
-    return Results.Created($"/administrator/{adm.Id}", adm);
+    return Results.Created($"/administrator/{adm.Id}", new AdministratorModelView { 
+        Id = adm.Id,
+        Email = adm.Email,
+        Role = Enum.Parse<Role>(adm.Role),
+    });
 }).WithTags("Administradores");
 
-app.MapGet("/administrators", ([FromQuery] int? page, IAdministratorService administratorService) =>
+app.MapGet("/administrators", ([FromQuery] int?page, IAdministratorService administratorService) =>
 {
+    var adms = new List<AdministratorModelView>();
     var administrators = administratorService.GetAll(page ?? 1);
-    return Results.Ok(administrators);
-}).WithTags("Administrators");
+    foreach(var administrator in administrators)
+    {
+        adms.Add(new AdministratorModelView { 
+            Id = administrator.Id,
+            Email = administrator.Email, 
+            Role = Enum.Parse<Role>(administrator.Role),
+        });
+    }
+
+    return Results.Ok(adms);
+});
 
 app.MapGet("/administrators/{id}", ([FromRoute] int id, IAdministratorService administratorService) =>
 {
     var administrator = administratorService.GetById(id);
     if (administrator == null)
         return Results.NotFound();
-    return Results.Ok(administrator);
+
+    var adm = new AdministratorModelView
+    {
+        Id = administrator.Id,
+        Email = administrator.Email,
+        Role = Enum.Parse<Role>(administrator.Role),
+    };
+
+    return Results.Ok(adm);
 }).WithTags("Veículos");
 #endregion
 
